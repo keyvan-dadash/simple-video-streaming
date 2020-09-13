@@ -1,69 +1,55 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"log"
 	"net/http"
-	"strconv"
 
-	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 )
 
-func main() {
-	http.Handle("/", handlers())
-	http.ListenAndServe(":8000", nil)
+var addr = flag.String("addr", ":8080", "http service address")
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }
 
-func handlers() *mux.Router {
-	router := mux.NewRouter()
-	router.Use(mux.CORSMethodMiddleware(router))
-	router.HandleFunc("/", indexPage).Methods("GET")
-	router.HandleFunc("/media/{mId:[0-9]+}/stream/", streamHandler).Methods("GET")
-	router.HandleFunc("/media/{mId:[0-9]+}/stream/{segName:index[0-9]+.ts}", streamHandler).Methods("GET")
-	return router
-}
-
-func indexPage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	http.ServeFile(w, r, "index.html")
-}
-
-func streamHandler(response http.ResponseWriter, request *http.Request) {
-	response.Header().Set("Access-Control-Allow-Origin", "*")
-	vars := mux.Vars(request)
-	mID, err := strconv.Atoi(vars["mId"])
-	if err != nil {
-		response.WriteHeader(http.StatusNotFound)
+func serveWs(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.URL)
+	if r.URL.Path != "/ws" {
+		http.Error(w, "Not found", http.StatusNotFound)
 		return
 	}
-
-	segName, ok := vars["segName"]
-	if !ok {
-		mediaBase := getMediaBase(mID)
-		m3u8Name := "index.m3u8"
-		serveHlsM3u8(response, request, mediaBase, m3u8Name)
-	} else {
-		mediaBase := getMediaBase(mID)
-		serveHlsTs(response, request, mediaBase, segName)
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
+	upgrader.CheckOrigin(r)
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Fatalf("Error occured during create websockt err: %v", err)
+	}
+
+	go func(conn *websocket.Conn) {
+		for {
+			_, message, _ := conn.ReadMessage()
+			fmt.Println(message)
+		}
+	}(conn)
 }
 
-func getMediaBase(mID int) string {
-	mediaRoot := "assets/media"
-	return fmt.Sprintf("%s/%d", mediaRoot, mID)
-}
-
-func serveHlsM3u8(w http.ResponseWriter, r *http.Request, mediaBase, m3u8Name string) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	mediaFile := fmt.Sprintf("videos/%s", m3u8Name)
-	fmt.Println(mediaFile)
-	http.ServeFile(w, r, mediaFile)
-	w.Header().Set("Content-Type", "application/x-mpegURL")
-}
-
-func serveHlsTs(w http.ResponseWriter, r *http.Request, mediaBase, segName string) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	mediaFile := fmt.Sprintf("videos/%s", segName)
-	fmt.Println(mediaFile)
-	http.ServeFile(w, r, mediaFile)
-	w.Header().Set("Content-Type", "video/MP2T")
+func main() {
+	flag.Parse()
+	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		serveWs(w, r)
+	})
+	err := http.ListenAndServe(*addr, nil)
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
+	}
 }
