@@ -6,10 +6,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//ReaderWriter is custom ReaderWriter
 type ReaderWriter struct {
 	*bufio.ReadWriter
 }
 
+//NewReaderWriter create ReaderWriter and return pointer
 func NewReaderWriter(rw *bufio.ReadWriter) *ReaderWriter {
 	return &ReaderWriter{
 		&bufio.ReadWriter{
@@ -18,6 +20,8 @@ func NewReaderWriter(rw *bufio.ReadWriter) *ReaderWriter {
 		},
 	}
 }
+
+//ReadNByte Read N Byte form readerwriter
 func (rw *ReaderWriter) ReadNByte(n int) uint32 {
 	if n < 0 {
 		return 0
@@ -27,7 +31,7 @@ func (rw *ReaderWriter) ReadNByte(n int) uint32 {
 		by, err := rw.ReadByte()
 
 		if err != nil {
-			logrus.Error("[Error]Read %v Byte from %rw faced to error", n, rw)
+			logrus.Errorf("[Error]Read %v Byte from readerwriter faced to error, err: %v", n, err)
 		}
 		ret = ret<<8 + uint32(by)
 	}

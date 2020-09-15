@@ -1,24 +1,20 @@
 package main
 
 import (
-	"net"
+	"./protocols/rtmp"
 
 	"github.com/sirupsen/logrus"
-
-	"./protocols/rtmp/chunk"
 )
 
 func main() {
 
-	lan, _ := net.Listen("tcp", "127.0.0.1:1935")
-
 	logrus.SetLevel(logrus.DebugLevel)
 
-	for {
+	c := make(chan int)
 
-		conn, _ := lan.Accept()
-		nConn := chunk.NewConn(conn, 1024)
+	s := rtmp.Server{}
 
-		nConn.HandShake()
-	}
+	s.Start("127.0.0.1:1935", c)
+
+	<-c
 }

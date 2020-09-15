@@ -31,7 +31,7 @@ func (conn *Conn) HandShake() {
 	C0C1 := make([]byte, 1537)
 
 	//look like server send C0 and C1 together
-	conn.Conn.SetDeadline(time.Now().Add(timeout))
+	//conn.Conn.SetDeadline(time.Now().Add(timeout))
 	if _, err := io.ReadFull(conn.rw, C0C1); err != nil {
 		logrus.Errorf("[Error] %v error during reading C0 in handshake", err)
 		return
@@ -95,7 +95,7 @@ func (conn *Conn) HandShake() {
 	S0S1S2 = append(S0S1S2, S2...)
 
 	//write total handshake packet to connection
-	conn.Conn.SetDeadline(time.Now().Add(timeout))
+	//conn.Conn.SetDeadline(time.Now().Add(timeout))
 	if _, err := conn.rw.Write(S0S1S2); err != nil {
 		logrus.Errorf("[Error] %v during sending S2 in handshake", err)
 	}
@@ -104,7 +104,7 @@ func (conn *Conn) HandShake() {
 	logrus.Debug("[Debug] successfully send total handshake packet")
 
 	//reading C2
-	conn.Conn.SetDeadline(time.Now().Add(timeout))
+	//conn.Conn.SetDeadline(time.Now().Add(timeout))
 	if _, err := io.ReadFull(conn.rw, C2); err != nil {
 		logrus.Errorf("[Error] %v error during reading C2 in handshake", err)
 		return
