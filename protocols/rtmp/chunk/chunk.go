@@ -49,18 +49,21 @@ func (c *Chunk) writeHeader(rw *ReaderWriter) {
 		basicHeader[0] = byte(uint8(c.fmt) << 6)
 		basicHeader[0] |= byte(uint8(c.CSID))
 		rw.Write(basicHeader)
+		logrus.Debugf("basic header is %v", basicHeader)
 	} else if c.CSID-64 < 256 {
 		basicHeader := make([]byte, 2)
 		basicHeader[0] = byte(uint8(c.fmt) << 6)
 		basicHeader[0] |= 0
 		basicHeader[1] = byte(uint8(c.CSID - 64))
 		rw.Write(basicHeader)
+		logrus.Debugf("basic header is %v", basicHeader)
 	} else if c.CSID-64 < 65536 {
 		basicHeader := make([]byte, 3)
 		basicHeader[0] = byte(uint8(c.fmt) << 6)
 		basicHeader[0] |= 1
 		binary.BigEndian.PutUint16(basicHeader[1:], uint16(c.CSID-64))
 		rw.Write(basicHeader)
+		logrus.Debugf("basic header is %v", basicHeader)
 	} else {
 		logrus.Errorf("[Error] CSID in chunk is invalid, CSID is %v", c.CSID)
 	}
@@ -76,17 +79,21 @@ func (c *Chunk) writeHeader(rw *ReaderWriter) {
 			binary.BigEndian.PutUint32(timestamp, c.timeStamp)
 			rw.Write(timestamp[1:])
 		}
+		logrus.Debugf("timestamp %v", timestamp[1:])
 		messageLength := make([]byte, 4)
 		binary.BigEndian.PutUint32(messageLength, c.messageLength)
 		rw.Write(messageLength[1:])
+		logrus.Debugf("message lenght %v", messageLength[1:])
 
 		messagetypeID := make([]byte, 1)
 		messagetypeID[0] = uint8(c.messageTypeID)
 		rw.Write(messagetypeID)
+		logrus.Debugf("messagetypeID %v", messagetypeID)
 
 		messageStreamID := make([]byte, 4)
 		binary.BigEndian.PutUint32(messageStreamID, c.messageStreamID)
 		rw.Write(messageStreamID)
+		logrus.Debugf("messageStreamID %v", messageStreamID)
 	case 1:
 		timedelta := make([]byte, 4)
 		if !c.haveExtendedTimeStamp {
