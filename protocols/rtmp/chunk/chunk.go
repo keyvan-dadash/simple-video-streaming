@@ -72,8 +72,9 @@ func (c *Chunk) writeHeader(rw *ReaderWriter) {
 	switch c.fmt {
 	case 0:
 		timestamp := make([]byte, 4)
-		if !c.haveExtendedTimeStamp {
+		if c.haveExtendedTimeStamp {
 			binary.BigEndian.PutUint32(timestamp, uint32(0xffffff))
+			logrus.Debug("fuckk")
 			rw.Write(timestamp[1:])
 		} else {
 			binary.BigEndian.PutUint32(timestamp, c.timeStamp)

@@ -1,8 +1,7 @@
 package main
 
 import (
-	"./protocols/rtmp"
-
+	"./protocols/rtmp/server"
 	"github.com/sirupsen/logrus"
 )
 
@@ -12,9 +11,9 @@ func main() {
 
 	c := make(chan int)
 
-	s := rtmp.Server{}
+	s := server.NewRtmpServer("127.0.0.1", 1935)
 
-	s.Start("127.0.0.1:1935", c)
+	s.StartServer()
 
 	<-c
 }

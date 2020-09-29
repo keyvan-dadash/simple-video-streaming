@@ -79,11 +79,11 @@ func NewConn(c net.Conn, bufferSize int) *Conn {
 
 func (c *Conn) WriteChunk(chunk *Chunk) {
 
-	numberOfChunks := (chunk.messageLength / c.remoteChunkSize)
+	numberOfChunks := (chunk.messageLength / c.chunkSize)
 
 	logrus.Debug("number of blocks ", numberOfChunks)
 	logrus.Debug(chunk.messageLength)
-	logrus.Debug(c.remoteChunkSize)
+	logrus.Debug(c.chunkSize)
 
 	sentSize := uint32(0)
 	for i := uint32(0); i <= numberOfChunks; i++ {
@@ -98,8 +98,8 @@ func (c *Conn) WriteChunk(chunk *Chunk) {
 		}
 		chunk.writeHeader(c.rw)
 
-		startPtr := c.remoteChunkSize * i
-		endPtr := startPtr + c.remoteChunkSize
+		startPtr := c.chunkSize * i
+		endPtr := startPtr + c.chunkSize
 		if endPtr > uint32(len(chunk.data)) {
 			endPtr = uint32(len(chunk.data))
 		}
@@ -141,7 +141,7 @@ func (c *Conn) ReadChunk(chunk *Chunk) {
 
 		chunk.data = make([]byte, chunk.messageLength)
 		chunk.currentPos = 0
-		c.chunkSize = chunk.messageLength
+		//c.chunkSize = chunk.messageLength
 		chunk.isFinished = false
 		logrus.Debug("finished chunk type 0")
 	case 1:
@@ -189,7 +189,8 @@ func (c *Conn) ReadChunk(chunk *Chunk) {
 	if _, err := c.rw.Read(buffer); err != nil {
 		logrus.Errorf("[Error] error during reading and copy to buffer err: %v", err)
 	}
-	logrus.Debugf("finished reading buffer %", len(buffer))
+	logrus.Debug(buffer)
+	logrus.Debugf("finished reading buffer %v", len(buffer))
 
 	chunk.currentPos += uint32(len(buffer))
 	if chunk.currentPos == chunk.messageLength {
@@ -201,7 +202,7 @@ func (c *Conn) ReadChunk(chunk *Chunk) {
 func (c *Conn) handleControlMessages(chunk *Chunk) {
 
 	if chunk.messageTypeID == setChunkSizeID {
-		fmt.Println(binary.BigEndian.Uint32(chunk.data))
+		fmt.Printf("chunk size is %v\n", binary.BigEndian.Uint32(chunk.data))
 		c.remoteChunkSize = binary.BigEndian.Uint32(chunk.data)
 	} else if chunk.messageTypeID == windowAckSizeID {
 		c.remoteWindowAckSize = binary.BigEndian.Uint32(chunk.data)
@@ -319,6 +320,7 @@ func initControlMsg(id, size, value uint32) Chunk {
 		data:            make([]byte, size),
 	}
 	binary.BigEndian.PutUint32(ret.data[:size], value)
+	logrus.Debugf("init controll packet is %v and value", ret, value)
 	return ret
 }
 
@@ -328,8 +330,9 @@ func (conn *Conn) connectResp(chunk *Chunk) {
 	c = conn.NewSetPeerBandwidth(2500000)
 	conn.WriteChunk(&c)
 	c = conn.NewSetChunkSize(uint32(1024))
+	conn.chunkSize = 1024
 	conn.WriteChunk(&c)
-	conn.remoteChunkSize = 1024
+	conn.rw.Flush()
 
 	resp := make(amf.Object)
 	resp["fmsVer"] = "FMS/3,0,1,123"
