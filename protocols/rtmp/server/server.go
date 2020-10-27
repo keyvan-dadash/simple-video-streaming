@@ -4,6 +4,7 @@ import (
 	"net"
 	"strconv"
 
+	Conn "../conn"
 	"github.com/sirupsen/logrus"
 )
 
@@ -12,7 +13,7 @@ type RtmpServer struct {
 	Addr    string
 	Port    int
 	listner net.Listener
-	Conns   map[string]Conn
+	Conns   map[string]Conn.Conn
 }
 
 //NewRtmpServer return RtmpServer with given addr and port
@@ -43,7 +44,7 @@ func (rtmpS *RtmpServer) StartServer() {
 			logrus.Errorf("[Error] cannot accept connectin from addr %v on port %v err: %v", rtmpS.Addr, rtmpS.Port, err)
 			continue
 		}
-		connHandler := NewConnHadler(NewConn(conn))
+		connHandler := NewConnHadler(Conn.NewConn(conn))
 		go connHandler.Handle()
 	}
 }

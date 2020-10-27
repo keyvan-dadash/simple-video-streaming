@@ -48,6 +48,7 @@ func (b *BasicHeader) Read(reader *bufio.Reader) (int, error) {
 		b.CSID = tempCSID
 	}
 
+	logrus.Debugf("[Debug] read basicheader with fmt %v and CSID %v", b.Fmt, b.CSID)
 	return recvBytes, nil
 }
 

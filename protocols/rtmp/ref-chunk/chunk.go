@@ -22,8 +22,8 @@ func NewChunk() *Chunk {
 	}
 }
 
-func (c *Chunk) Read(reader *bufio.Reader, chunkData []byte) {
-	logrus.Debug("[Debug] start reading chunk")
+func (c *Chunk) Read(reader *bufio.Reader) {
+	logrus.Debug("[Debug] start reading chunk headers")
 	c.BasicHeader.Read(reader)
 	c.MessageHeader.Read(reader, c.BasicHeader.Fmt)
 	if c.MessageHeader.TtimeStamp == 0xffffff || c.MessageHeader.TimeStampDelta == 0xffffff {
@@ -31,10 +31,14 @@ func (c *Chunk) Read(reader *bufio.Reader, chunkData []byte) {
 	}
 	c.ExtendedTimeStamp.Read(reader)
 
+	logrus.Debug("[Debug] finished reading chunk headers")
+}
+
+//ReadPayload is function that read payload that in chunk
+func (c *Chunk) ReadPayload(reader *bufio.Reader, chunkData []byte) {
 	if _, err := reader.Read(chunkData); err != nil {
 		logrus.Errorf("[Error] %v occured during reading chunk with chunk stream ID %v", err, c.BasicHeader.CSID)
 	}
-	logrus.Debug("[Debug] finished reading chunk")
 }
 
 func (c *Chunk) Write(writer *bufio.Writer, chunkData []byte) {
