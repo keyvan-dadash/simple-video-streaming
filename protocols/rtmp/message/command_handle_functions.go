@@ -2,7 +2,6 @@ package message
 
 import (
 	"errors"
-	"math"
 
 	"../amf"
 	"../conn"
@@ -18,7 +17,6 @@ func cmdChunk(Fmt uint32, CSID uint32, msgStreamID uint32, msgSize uint32) *chun
 	cmdChunk.MessageHeader.MessageLength = msgSize
 	cmdChunk.MessageHeader.MessageStreamID = msgStreamID
 	cmdChunk.MessageHeader.TtimeStamp = 0
-
 	return cmdChunk
 }
 
@@ -31,19 +29,6 @@ func writeMsg(conn *conn.Conn, CSID uint32, streamID uint32, args ...interface{}
 	}
 	msg := conn.Bytesw.Bytes()
 
-	numberOfCmdChunks := uint32(math.Ceil(float64(len(msg)) / float64(conn.ServerChunkSize)))
-
-	logrus.Debugf("[Debug] Number of chunk is %v", numberOfCmdChunks)
-	chunks := []*chunk.Chunk{}
-	for i := uint32(0); i < numberOfCmdChunks; i++ {
-		if i == 0 {
-			chunks = append(chunks, cmdChunk(uint32(0), CSID, streamID, uint32(len(msg))))
-		} else {
-			chunks = append(chunks, cmdChunk(uint32(3), CSID, streamID, uint32(len(msg))))
-
-		}
-	}
-
 	message := &Message{
 		MessageTypeID:   20,
 		MessageStreamID: streamID,
@@ -53,12 +38,10 @@ func writeMsg(conn *conn.Conn, CSID uint32, streamID uint32, args ...interface{}
 		chunkSize:       conn.ServerChunkSize,
 		Chunks:          make(map[uint32]*chunk.Chunk),
 	}
-	for i := uint32(0); i < numberOfCmdChunks; i++ {
-		message.Chunks[i] = chunks[i]
-	}
 
 	logrus.Debugf("[Debug] message is %v", message)
-	message.Write()
+	firstChunk := cmdChunk(uint32(0), CSID, streamID, uint32(len(msg)))
+	message.CreateChunksBasedOnFirstChunkThenWrite(firstChunk)
 	return conn.ReaderWriter.Flush()
 }
 
@@ -96,13 +79,15 @@ func handleConnectCmd(amfMessageData []interface{}, conn *conn.Conn) error {
 func responseToConnect(conn *conn.Conn, msg *Message) error {
 	controlMsg := NewWindowAckSizeMessage(conn, 2500000)
 	logrus.Debug("[Debug] sending window ack size message")
-	controlMsg.Write()
+	controlMsg.WriteWithProvidedChunkList()
+
 	controlMsg = NewSetPeerBandwidthMessage(conn, 2500000)
 	logrus.Debug("[Debug] set peer bandwidth message")
-	controlMsg.Write()
+	controlMsg.WriteWithProvidedChunkList()
+
 	controlMsg = NewSetChunkSizeMessage(conn, 1024)
 	logrus.Debug("[Debug] set chunk size message")
-	controlMsg.Write()
+	controlMsg.WriteWithProvidedChunkList()
 	conn.ServerChunkSize = 1024
 
 	resp := make(amf.Object)
@@ -119,9 +104,6 @@ func responseToConnect(conn *conn.Conn, msg *Message) error {
 	logrus.Debugf("[Debug] resp is %v", resp)
 	logrus.Debugf("[Debug] event is %v", event)
 	logrus.Debug("------end of resp and event in connect --------")
-
-	// logrus.Debug(msg.Chunks[0].BasicHeader.CSID)
-	// logrus.Debug(msg.MessageStreamID)
 
 	return writeMsg(conn, msg.Chunks[0].BasicHeader.CSID, msg.MessageStreamID, "_result", conn.ConnInfo.TransactionID, resp, event)
 }

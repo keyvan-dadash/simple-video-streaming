@@ -31,7 +31,7 @@ func (ch *ConnHandler) Handle() {
 	for {
 		msg := message.NewMessage(ch.Conn.ReaderWriter, ch.Conn.ClientChunkSize, ch.Conn)
 		msg.FetchWithPreviousMsg(previousMsg)
-		msg.Read() //note: we must fetch message
+		msg.Read()
 		previousMsg = msg
 		ch.messages[msg.MessageStreamID] = msg
 		msgCtlHandler := message.NewMsgControlHandler(msg, ch.Conn)
@@ -46,7 +46,7 @@ func (ch *ConnHandler) Handle() {
 		if ch.Conn.AckReceived >= ch.Conn.ClientWindowAckSize {
 			sendAck := message.NewAckMessage(ch.Conn, ch.Conn.AckReceived)
 			logrus.Debugf("[Debug] sending ack with size %v", ch.Conn.AckReceived)
-			sendAck.Write()
+			sendAck.WriteWithProvidedChunkList()
 			ch.Conn.AckReceived = 0
 		}
 		ch.index++
