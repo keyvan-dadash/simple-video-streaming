@@ -55,15 +55,15 @@ func (msgCH *MsgCmdHandler) HandleMsgCmd() error {
 		case cmdCreateStream:
 			handleCreateStreamCmd(decodedMsg[1:], msgCH.conn)
 			responseToCreateStream(msgCH.conn, msgCH.Msg)
-			logrus.Debug("finished create stream")
-			os.Exit(1)
+			logrus.Debug("[Debug] finished create stream")
+			// os.Exit(1)
 		case cmdPlay:
 			logrus.Debug("finished play")
 			os.Exit(1)
 		case cmdFcpublish:
-			//connServer.fcPublish(decodedMsg)
+			// connServer.fcPublish(decodedMsg)
 		case cmdReleaseStream:
-			//connServer.releaseStream(decodedMsg)
+			// connServer.releaseStream(decodedMsg)
 		case cmdFCUnpublish:
 		case cmdDeleteStream:
 		default:

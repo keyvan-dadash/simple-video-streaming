@@ -67,6 +67,7 @@ func (m *MessageHeader) Read(reader *bufio.Reader, fmt uint32) (int, error) {
 		logrus.Debugf("[Debug] read messageheader with fmt %v TimeStampDelta %v",
 			fmt, m.TimeStampDelta)
 	case 3:
+		// ReadNByte(reader, TIMESTAMPDELTA_LENGTH+1)
 		//we must determine this to how exact we are going to handle this
 	}
 
@@ -104,15 +105,15 @@ func (m *MessageHeader) Write(writer *bufio.Writer, fmt uint32) (int, error) {
 		numberOfWrittenBytes += nn
 		nn = 0
 
-		messageStreamID := make([]byte, MESSAGESTREAMID_LENGTH+1)
+		messageStreamID := make([]byte, MESSAGESTREAMID_LENGTH)
 		binary.BigEndian.PutUint32(messageStreamID, m.MessageStreamID)
-		nn, err = writer.Write(messageStreamID[1:])
+		nn, err = writer.Write(messageStreamID)
 
 		numberOfWrittenBytes += nn
 		nn = 0
 
 		logrus.Debugf("[Debug] write messageheader with fmt %v TimeStamp %v MessageLength %v MessageTypeID %v MessageStreamID %v",
-			fmt, m.TtimeStamp, m.MessageLength, m.MessageTypeID, m.MessageStreamID)
+			fmt, timeStamp[1:], messageLength, messageTypeID, messageStreamID)
 
 	case 1:
 		nn := 0

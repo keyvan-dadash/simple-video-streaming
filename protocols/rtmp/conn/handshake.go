@@ -55,6 +55,7 @@ func (hs *HandShakeConn) HandShake() {
 	logrus.Debug("successfully sent S1 packet")
 	hs.writePacket(S2)
 	logrus.Debug("successfully sent S2 packet")
+	hs.conn.ReaderWriter.Flush()
 
 	//read C2 packet and begin validation
 	hs.readPacket(C2)
@@ -80,7 +81,6 @@ func (hs *HandShakeConn) writePacket(outBuffer []byte) {
 		logrus.Errorf("[Error] %v during sending buffer with size %v in handshake", err, len(outBuffer))
 		return
 	}
-	hs.conn.ReaderWriter.Flush()
 }
 
 func validateC0Packet(C0 []byte) bool {

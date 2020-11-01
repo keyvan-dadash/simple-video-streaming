@@ -60,18 +60,21 @@ func (b *BasicHeader) Write(writer *bufio.Writer) (int, error) {
 		basicHeader[0] = byte(uint8(b.Fmt) << 6)
 		basicHeader[0] |= byte(uint8(b.CSID))
 		numberOfWrittenBytes, err = writer.Write(basicHeader)
+		logrus.Debugf("[Debug] written basic header v0 with id %v", basicHeader)
 	} else if b.CSID-64 < 256 {
 		basicHeader := make([]byte, 2)
 		basicHeader[0] = byte(uint8(b.Fmt) << 6)
 		basicHeader[0] |= 0
 		basicHeader[1] = byte(uint8(b.CSID - 64))
 		numberOfWrittenBytes, err = writer.Write(basicHeader)
+		logrus.Debugf("[Debug] written basic header v1 with id %v", basicHeader)
 	} else if b.CSID-64 < 65536 {
 		basicHeader := make([]byte, 3)
 		basicHeader[0] = byte(uint8(b.Fmt) << 6)
 		basicHeader[0] |= 1
 		binary.BigEndian.PutUint16(basicHeader[1:], uint16(b.CSID-64))
 		numberOfWrittenBytes, err = writer.Write(basicHeader)
+		logrus.Debugf("[Debug] written basic header v2 with id %v", basicHeader)
 	} else {
 		logrus.Errorf("[Error] CSID in chunk is invalid, CSID is %v", b.CSID)
 	}

@@ -53,6 +53,5 @@ func (c *Chunk) Write(writer *bufio.Writer, chunkData []byte) {
 	if _, err := writer.Write(chunkData); err != nil {
 		logrus.Errorf("[Error] %v occured during writing chunk with chunk stream ID %v", err, c.BasicHeader.CSID)
 	}
-	writer.Flush()
 	logrus.Debug("[Debug] finished writing chunk")
 }

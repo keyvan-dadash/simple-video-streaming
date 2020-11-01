@@ -31,8 +31,9 @@ func writeMsg(conn *conn.Conn, CSID uint32, streamID uint32, args ...interface{}
 	}
 	msg := conn.Bytesw.Bytes()
 
-	numberOfCmdChunks := uint32(math.Ceil(float64(len(msg)) / float64(conn.ClientChunkSize)))
+	numberOfCmdChunks := uint32(math.Ceil(float64(len(msg)) / float64(conn.ServerChunkSize)))
 
+	logrus.Debugf("[Debug] Number of chunk is %v", numberOfCmdChunks)
 	chunks := []*chunk.Chunk{}
 	for i := uint32(0); i < numberOfCmdChunks; i++ {
 		if i == 0 {
@@ -49,7 +50,7 @@ func writeMsg(conn *conn.Conn, CSID uint32, streamID uint32, args ...interface{}
 		MessageData:     msg,
 		MessageLength:   uint32(len(msg)),
 		ReaderWriter:    conn.ReaderWriter,
-		chunkSize:       conn.ClientChunkSize,
+		chunkSize:       conn.ServerChunkSize,
 		Chunks:          make(map[uint32]*chunk.Chunk),
 	}
 	for i := uint32(0); i < numberOfCmdChunks; i++ {
@@ -119,8 +120,8 @@ func responseToConnect(conn *conn.Conn, msg *Message) error {
 	logrus.Debugf("[Debug] event is %v", event)
 	logrus.Debug("------end of resp and event in connect --------")
 
-	logrus.Debug(msg.Chunks[0].BasicHeader.CSID)
-	logrus.Debug(msg.MessageStreamID)
+	// logrus.Debug(msg.Chunks[0].BasicHeader.CSID)
+	// logrus.Debug(msg.MessageStreamID)
 
 	return writeMsg(conn, msg.Chunks[0].BasicHeader.CSID, msg.MessageStreamID, "_result", conn.ConnInfo.TransactionID, resp, event)
 }
@@ -138,5 +139,19 @@ func handleCreateStreamCmd(amfMessageData []interface{}, conn *conn.Conn) error 
 }
 
 func responseToCreateStream(conn *conn.Conn, msg *Message) error {
-	return writeMsg(conn, msg.Chunks[0].BasicHeader.CSID, msg.MessageStreamID, "_result", conn.ConnInfo.TransactionID, nil, msg.MessageStreamID)
+
+	logrus.Debug(msg.Chunks[0].BasicHeader.CSID)
+	logrus.Debug(msg.MessageStreamID)
+
+	// logrus.Debug(conn.ReaderWriter.Writer.Available())
+	// conn.ReaderWriter.Flush()
+
+	// ts := []byte{2, 2, 2, 0, 0, 29, 20, 0, 0, 0, 0, 2, 0, 7, 95, 114, 101, 115, 117, 108, 116, 0, 64, 16, 0, 0, 0, 0, 0, 0, 5, 0, 63, 240, 0, 0, 0, 0, 0, 0}
+	// logrus.Debug(ts)
+	// conn.ReaderWriter.Write(ts)
+	// conn.ReaderWriter.Flush()
+	// return nil
+	// return responseToConnect(conn, msg)
+	// return writeMsg(conn, 1, msg.MessageStreamID, "_result", conn.ConnInfo.TransactionID, nil, nil)
+	return writeMsg(conn, msg.Chunks[0].BasicHeader.CSID, msg.MessageStreamID, "_result", conn.ConnInfo.TransactionID, nil, 1)
 }

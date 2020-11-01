@@ -115,7 +115,6 @@ func (m *Message) Read() {
 }
 
 func (m *Message) Write() {
-	logrus.Debug(m.Chunks)
 	for i := range m.Chunks {
 		logrus.Debug(m.chunkSize)
 
