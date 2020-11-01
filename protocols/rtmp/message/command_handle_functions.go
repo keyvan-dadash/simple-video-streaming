@@ -139,19 +139,28 @@ func handleCreateStreamCmd(amfMessageData []interface{}, conn *conn.Conn) error 
 }
 
 func responseToCreateStream(conn *conn.Conn, msg *Message) error {
-
-	logrus.Debug(msg.Chunks[0].BasicHeader.CSID)
-	logrus.Debug(msg.MessageStreamID)
-
-	// logrus.Debug(conn.ReaderWriter.Writer.Available())
-	// conn.ReaderWriter.Flush()
-
-	// ts := []byte{2, 2, 2, 0, 0, 29, 20, 0, 0, 0, 0, 2, 0, 7, 95, 114, 101, 115, 117, 108, 116, 0, 64, 16, 0, 0, 0, 0, 0, 0, 5, 0, 63, 240, 0, 0, 0, 0, 0, 0}
-	// logrus.Debug(ts)
-	// conn.ReaderWriter.Write(ts)
-	// conn.ReaderWriter.Flush()
-	// return nil
-	// return responseToConnect(conn, msg)
-	// return writeMsg(conn, 1, msg.MessageStreamID, "_result", conn.ConnInfo.TransactionID, nil, nil)
 	return writeMsg(conn, msg.Chunks[0].BasicHeader.CSID, msg.MessageStreamID, "_result", conn.ConnInfo.TransactionID, nil, 1)
+}
+
+func handlePublishCmd(amfMessageData []interface{}, conn *conn.Conn) error {
+	for _, v := range amfMessageData {
+		switch v.(type) {
+		case string:
+			break
+		case float64:
+			id := int(v.(float64))
+			conn.ConnInfo.TransactionID = id
+		case amf.Object:
+		}
+	}
+
+	return nil
+}
+
+func responseToPublish(conn *conn.Conn, msg *Message) error {
+	event := make(amf.Object)
+	event["level"] = "status"
+	event["code"] = "NetStream.Publish.Start"
+	event["description"] = "Start publising."
+	return writeMsg(conn, msg.Chunks[0].BasicHeader.CSID, msg.MessageStreamID, "onStatus", 0, nil, event)
 }

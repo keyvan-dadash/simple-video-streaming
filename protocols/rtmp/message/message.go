@@ -67,6 +67,11 @@ func (m *Message) initMessage() {
 		m.MessageData = make([]byte, firstChunk.MessageHeader.MessageLength)
 	}
 
+	logrus.Debug("------start init-----")
+	logrus.Debug(m.currentDataCellPos)
+	logrus.Debug(chunkSize)
+	logrus.Debug(len(m.MessageData))
+	logrus.Debug("------end init--------")
 	if m.currentDataCellPos+chunkSize > uint32(len(m.MessageData)) {
 		chunkSize = uint32(len(m.MessageData)) - m.currentDataCellPos
 	}
@@ -99,12 +104,17 @@ func (m *Message) Read() {
 		curChunk := chunk.NewChunk()
 		curChunk.Read(m.ReaderWriter.Reader)
 
-		chunkSize := m.currentDataCellPos + m.chunkSize
-		if chunkSize > uint32(len(m.MessageData)) {
+		logrus.Debug("------start-----")
+		logrus.Debug(m.currentDataCellPos)
+		logrus.Debug(m.chunkSize)
+		logrus.Debug(len(m.MessageData))
+		logrus.Debug("------end--------")
+		chunkSize := m.chunkSize
+		if m.currentDataCellPos+chunkSize > uint32(len(m.MessageData)) {
 			chunkSize = uint32(len(m.MessageData)) - m.currentDataCellPos
 		}
 		logrus.Debugf("[Debug] send buffer to chunk to read with size %v and start point %v and endpoint %v",
-			m.chunkSize, m.currentDataCellPos, m.currentDataCellPos+chunkSize)
+			chunkSize, m.currentDataCellPos, m.currentDataCellPos+chunkSize)
 
 		curChunk.ReadPayload(m.ReaderWriter.Reader, m.MessageData[m.currentDataCellPos:m.currentDataCellPos+chunkSize])
 		m.currentDataCellPos += chunkSize

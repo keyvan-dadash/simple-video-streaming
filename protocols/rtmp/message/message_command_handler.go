@@ -60,6 +60,9 @@ func (msgCH *MsgCmdHandler) HandleMsgCmd() error {
 		case cmdPlay:
 			logrus.Debug("finished play")
 			os.Exit(1)
+		case cmdPublish:
+			handlePublishCmd(decodedMsg[1:], msgCH.conn)
+			responseToPublish(msgCH.conn, msgCH.Msg)
 		case cmdFcpublish:
 			// connServer.fcPublish(decodedMsg)
 		case cmdReleaseStream:

@@ -26,7 +26,7 @@ func NewConnHadler(c *conn.Conn) *ConnHandler {
 func (ch *ConnHandler) Handle() {
 	handshakeHandler := conn.NewHandShakeConn(ch.Conn)
 	handshakeHandler.HandShake()
-	previousMsg := message.NewMessage(ch.Conn.ReaderWriter, ch.Conn.ServerChunkSize, ch.Conn)
+	previousMsg := message.NewMessage(ch.Conn.ReaderWriter, ch.Conn.ClientChunkSize, ch.Conn)
 
 	for {
 		msg := message.NewMessage(ch.Conn.ReaderWriter, ch.Conn.ClientChunkSize, ch.Conn)
