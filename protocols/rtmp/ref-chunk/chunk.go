@@ -22,36 +22,59 @@ func NewChunk() *Chunk {
 	}
 }
 
-func (c *Chunk) Read(reader *bufio.Reader) {
+func (c *Chunk) Read(reader *bufio.Reader) error {
 	logrus.Debug("[Debug] start reading chunk headers")
-	c.BasicHeader.Read(reader)
-	c.MessageHeader.Read(reader, c.BasicHeader.Fmt)
+	if _, err := c.BasicHeader.Read(reader); err != nil {
+		return err
+	}
+
+	if _, err := c.MessageHeader.Read(reader, c.BasicHeader.Fmt); err != nil {
+		return err
+	}
+
 	if c.MessageHeader.TtimeStamp == 0xffffff || c.MessageHeader.TimeStampDelta == 0xffffff {
 		c.ExtendedTimeStamp.hasExtendedTimeStamp = true
 	}
-	c.ExtendedTimeStamp.Read(reader)
+	if _, err := c.ExtendedTimeStamp.Read(reader); err != nil {
+		return err
+	}
 
 	logrus.Debug("[Debug] finished reading chunk headers")
+	return nil
 }
 
 //ReadPayload is function that read payload that in chunk
-func (c *Chunk) ReadPayload(reader *bufio.Reader, chunkData []byte) {
+func (c *Chunk) ReadPayload(reader *bufio.Reader, chunkData []byte) error {
 	if _, err := reader.Read(chunkData); err != nil {
 		logrus.Errorf("[Error] %v occured during reading chunk with chunk stream ID %v", err, c.BasicHeader.CSID)
+		return err
 	}
+
+	return nil
 }
 
-func (c *Chunk) Write(writer *bufio.Writer, chunkData []byte) {
+func (c *Chunk) Write(writer *bufio.Writer, chunkData []byte) error {
 	logrus.Debug("[Debug] start writing chunk")
-	c.BasicHeader.Write(writer)
-	c.MessageHeader.Write(writer, c.BasicHeader.Fmt)
+	if _, err := c.BasicHeader.Write(writer); err != nil {
+		return err
+	}
+
+	if _, err := c.MessageHeader.Write(writer, c.BasicHeader.Fmt); err != nil {
+		return err
+	}
+
 	if c.MessageHeader.TtimeStamp == 0xffffff || c.MessageHeader.TimeStampDelta == 0xffffff {
 		c.ExtendedTimeStamp.hasExtendedTimeStamp = true
 	}
-	c.ExtendedTimeStamp.Write(writer)
+	if _, err := c.ExtendedTimeStamp.Write(writer); err != nil {
+		return err
+	}
 
 	if _, err := writer.Write(chunkData); err != nil {
 		logrus.Errorf("[Error] %v occured during writing chunk with chunk stream ID %v", err, c.BasicHeader.CSID)
+		return err
 	}
+
 	logrus.Debug("[Debug] finished writing chunk")
+	return nil
 }

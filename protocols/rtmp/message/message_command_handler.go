@@ -50,8 +50,13 @@ func (msgCH *MsgCmdHandler) HandleMsgCmd() error {
 	case string:
 		switch decodedMsg[0].(string) {
 		case cmdConnect:
-			handleConnectCmd(decodedMsg[1:], msgCH.conn)
-			responseToConnect(msgCH.conn, msgCH.Msg)
+			if err := handleConnectCmd(decodedMsg[1:], msgCH.conn); err != nil {
+				return err
+			}
+
+			if err := responseToConnect(msgCH.conn, msgCH.Msg); err != nil {
+				return err
+			}
 		case cmdCreateStream:
 			handleCreateStreamCmd(decodedMsg[1:], msgCH.conn)
 			responseToCreateStream(msgCH.conn, msgCH.Msg)

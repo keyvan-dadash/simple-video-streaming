@@ -55,11 +55,13 @@ func (m *Message) getChunkSize() uint32 {
 	return chunkSize
 }
 
-func (m *Message) firstChunk() {
+func (m *Message) firstChunk() error {
 	firstChunk := chunk.NewChunk()
 
 	logrus.Debugf("[Debug] Reading FirstChunk of Message")
-	firstChunk.Read(m.ReaderWriter.Reader)
+	if err := firstChunk.Read(m.ReaderWriter.Reader); err != nil {
+		return err
+	}
 
 	if firstChunk.BasicHeader.Fmt == 1 {
 		m.MessageLength = firstChunk.MessageHeader.MessageLength
@@ -80,16 +82,24 @@ func (m *Message) firstChunk() {
 	logrus.Debugf("[Debug] send buffer to chunk to read with size %v and start point %v and endpoint %v",
 		chunkSize, m.currentDataCellPos, m.currentDataCellPos+chunkSize)
 
-	firstChunk.ReadPayload(m.ReaderWriter.Reader, m.MessageData[m.currentDataCellPos:m.currentDataCellPos+chunkSize])
+	if err := firstChunk.ReadPayload(m.ReaderWriter.Reader,
+		m.MessageData[m.currentDataCellPos:m.currentDataCellPos+chunkSize]); err != nil {
+		return err
+	}
 	m.currentDataCellPos += chunkSize
 
 	m.Chunks[m.index] = firstChunk
 	m.index++
 	logrus.Debugf("[Debug] Finished Reading FirstChunk of Message")
+
+	return nil
 }
 
-func (m *Message) Read() {
-	m.firstChunk()
+func (m *Message) Read() error {
+	if err := m.firstChunk(); err != nil {
+		return err
+	}
+
 	for {
 		if m.isFinished() {
 			m.conn.AckReceived += m.MessageLength
@@ -99,23 +109,30 @@ func (m *Message) Read() {
 		}
 
 		curChunk := chunk.NewChunk()
-		curChunk.Read(m.ReaderWriter.Reader)
+		if err := curChunk.Read(m.ReaderWriter.Reader); err != nil {
+			return err
+		}
 
 		chunkSize := m.getChunkSize()
 
 		logrus.Debugf("[Debug] Send Buffer with size %v and start index %v and end index %v to Chunk",
 			chunkSize, m.currentDataCellPos, m.currentDataCellPos+chunkSize)
 
-		curChunk.ReadPayload(m.ReaderWriter.Reader, m.MessageData[m.currentDataCellPos:m.currentDataCellPos+chunkSize])
+		if err := curChunk.ReadPayload(m.ReaderWriter.Reader,
+			m.MessageData[m.currentDataCellPos:m.currentDataCellPos+chunkSize]); err != nil {
+			return err
+		}
 		m.currentDataCellPos += chunkSize
 
 		m.Chunks[m.index] = curChunk
 		m.index++
 	}
+
+	return nil
 }
 
 //WriteWithProvidedChunkList is function that write message with provided chunk list in message struct
-func (m *Message) WriteWithProvidedChunkList() {
+func (m *Message) WriteWithProvidedChunkList() error {
 	for i := range m.Chunks {
 		logrus.Debug(m.chunkSize)
 
@@ -125,12 +142,16 @@ func (m *Message) WriteWithProvidedChunkList() {
 			chunkSize = uint32(len(m.MessageData)) - curDataCellPos
 		}
 
-		m.Chunks[i].Write(m.ReaderWriter.Writer, m.MessageData[curDataCellPos:curDataCellPos+chunkSize])
+		if err := m.Chunks[i].Write(m.ReaderWriter.Writer,
+			m.MessageData[curDataCellPos:curDataCellPos+chunkSize]); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 //CreateChunksBasedOnFirstChunkThenWrite is function that create ChunkBased on First Chunk Then write Message
-func (m *Message) CreateChunksBasedOnFirstChunkThenWrite(Chunk *chunk.Chunk) {
+func (m *Message) CreateChunksBasedOnFirstChunkThenWrite(Chunk *chunk.Chunk) error {
 
 	numberOfChunks := uint32(math.Ceil(float64(len(m.MessageData)) / float64(m.chunkSize)))
 
@@ -152,5 +173,5 @@ func (m *Message) CreateChunksBasedOnFirstChunkThenWrite(Chunk *chunk.Chunk) {
 		m.Chunks[i] = chunks[i]
 	}
 
-	m.WriteWithProvidedChunkList()
+	return m.WriteWithProvidedChunkList()
 }

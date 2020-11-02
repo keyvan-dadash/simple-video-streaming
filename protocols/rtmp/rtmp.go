@@ -3,8 +3,6 @@ package rtmp
 import (
 	"net"
 
-	"./chunk"
-
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,7 +11,7 @@ type Server struct {
 	listner net.Listener
 }
 
-//Start is function that start server and accept clients
+//Start is function that start rtmp server and accept clients
 func (s *Server) Start(addr string, end chan int) {
 	defer func() {
 		end <- 1
@@ -34,16 +32,11 @@ func (s *Server) Start(addr string, end chan int) {
 			logrus.Errorf("[Error] client cannot connect err: %v", err)
 		}
 
-		newConn := chunk.NewConn(conn, 1024)
-		go s.handleConn(newConn)
+		go s.HandleConn(conn)
 	}
 }
 
-func (s *Server) handleConn(conn *chunk.Conn) {
+//HandleConn handle single connection
+func (s *Server) HandleConn(conn net.Conn) {
 
-	//Begin handshake process
-	conn.HandShake()
-
-	//Start to read Chunks
-	chunk.Handler(conn)
 }
