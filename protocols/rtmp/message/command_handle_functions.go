@@ -24,6 +24,7 @@ func writeMsg(conn *conn.Conn, CSID uint32, streamID uint32, args ...interface{}
 	conn.Bytesw.Reset()
 	for _, v := range args {
 		if _, err := conn.Encoder.Encode(conn.Bytesw, v, amf.AMF0); err != nil {
+			logrus.Errorf("[Error] Error occurred during encode amf with err %v", err)
 			return err
 		}
 	}
@@ -42,6 +43,7 @@ func writeMsg(conn *conn.Conn, CSID uint32, streamID uint32, args ...interface{}
 	logrus.Debugf("[Debug] message is %v", message)
 	firstChunk := cmdChunk(uint32(0), CSID, streamID, uint32(len(msg)))
 	if err := message.CreateChunksBasedOnFirstChunkThenWrite(firstChunk); err != nil {
+		logrus.Errorf("[Error] Error occurred during send message with %v", err)
 		return err
 	}
 	return conn.ReaderWriter.Flush()
@@ -54,6 +56,7 @@ func handleConnectCmd(amfMessageData []interface{}, conn *conn.Conn) error {
 		case float64:
 			id := int(v.(float64))
 			if id != 1 {
+				logrus.Error("[Error] Error occurred after decode amf and handle command")
 				return errors.New("id is invalid")
 			}
 			conn.ConnInfo.TransactionID = id
@@ -82,18 +85,21 @@ func responseToConnect(conn *conn.Conn, msg *Message) error {
 	controlMsg := NewWindowAckSizeMessage(conn, 2500000)
 	logrus.Debug("[Debug] sending window ack size message")
 	if err := controlMsg.WriteWithProvidedChunkList(); err != nil {
+		logrus.Errorf("[Error] Error occurred during send window ack size message with err: %v", err)
 		return err
 	}
 
 	controlMsg = NewSetPeerBandwidthMessage(conn, 2500000)
 	logrus.Debug("[Debug] set peer bandwidth message")
 	if err := controlMsg.WriteWithProvidedChunkList(); err != nil {
+		logrus.Errorf("[Error] Error occurred during sendset peer bandwidth message with err: %v", err)
 		return err
 	}
 
 	controlMsg = NewSetChunkSizeMessage(conn, 1024)
 	logrus.Debug("[Debug] set chunk size message")
 	if err := controlMsg.WriteWithProvidedChunkList(); err != nil {
+		logrus.Errorf("[Error] Error occurred during send set chunk size message with err: %v", err)
 		return err
 	}
 	conn.ServerChunkSize = 1024

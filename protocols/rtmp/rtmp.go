@@ -38,5 +38,4 @@ func (s *Server) Start(addr string, end chan int) {
 
 //HandleConn handle single connection
 func (s *Server) HandleConn(conn net.Conn) {
-
 }

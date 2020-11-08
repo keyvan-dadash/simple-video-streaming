@@ -60,6 +60,9 @@ func (m *Message) firstChunk() error {
 
 	logrus.Debugf("[Debug] Reading FirstChunk of Message")
 	if err := firstChunk.Read(m.ReaderWriter.Reader); err != nil {
+		logrus.Errorf("[Error] Error occurred during reading headers of "+
+			"first chunk in message err: %v",
+			err)
 		return err
 	}
 
@@ -84,6 +87,9 @@ func (m *Message) firstChunk() error {
 
 	if err := firstChunk.ReadPayload(m.ReaderWriter.Reader,
 		m.MessageData[m.currentDataCellPos:m.currentDataCellPos+chunkSize]); err != nil {
+		logrus.Errorf(`[Error] Error occurred during payload of
+			first chunk in message err: %v`,
+			err)
 		return err
 	}
 	m.currentDataCellPos += chunkSize
@@ -97,6 +103,8 @@ func (m *Message) firstChunk() error {
 
 func (m *Message) Read() error {
 	if err := m.firstChunk(); err != nil {
+		logrus.Errorf("[Error] Error occurred during reading first chunk in message err: %v",
+			err)
 		return err
 	}
 
@@ -110,6 +118,8 @@ func (m *Message) Read() error {
 
 		curChunk := chunk.NewChunk()
 		if err := curChunk.Read(m.ReaderWriter.Reader); err != nil {
+			logrus.Errorf(`[Error] Faced to Error during read chunk headers with index %v
+			and err: %v`, m.index, err)
 			return err
 		}
 
@@ -120,6 +130,8 @@ func (m *Message) Read() error {
 
 		if err := curChunk.ReadPayload(m.ReaderWriter.Reader,
 			m.MessageData[m.currentDataCellPos:m.currentDataCellPos+chunkSize]); err != nil {
+			logrus.Errorf(`[Error] Faced to Error during read chunk payload with index %v
+			and err: %v`, m.index, err)
 			return err
 		}
 		m.currentDataCellPos += chunkSize
@@ -134,8 +146,6 @@ func (m *Message) Read() error {
 //WriteWithProvidedChunkList is function that write message with provided chunk list in message struct
 func (m *Message) WriteWithProvidedChunkList() error {
 	for i := range m.Chunks {
-		logrus.Debug(m.chunkSize)
-
 		curDataCellPos := i * m.chunkSize
 		chunkSize := m.chunkSize
 		if curDataCellPos+m.chunkSize > uint32(len(m.MessageData)) {
@@ -144,6 +154,8 @@ func (m *Message) WriteWithProvidedChunkList() error {
 
 		if err := m.Chunks[i].Write(m.ReaderWriter.Writer,
 			m.MessageData[curDataCellPos:curDataCellPos+chunkSize]); err != nil {
+			logrus.Errorf("[Error] Writing chunk faced Error with index %v and err: %v",
+				i, err)
 			return err
 		}
 	}

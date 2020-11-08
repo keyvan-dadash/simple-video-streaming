@@ -2,12 +2,11 @@ package main
 
 import (
 	"./protocols/rtmp/server"
-	"github.com/sirupsen/logrus"
 )
 
 func main() {
 
-	logrus.SetLevel(logrus.DebugLevel)
+	// logrus.SetLevel(logrus.DebugLevel)
 
 	c := make(chan int)
 

@@ -3,7 +3,6 @@ package message
 import (
 	"bytes"
 	"io"
-	"os"
 
 	"github.com/sirupsen/logrus"
 
@@ -12,20 +11,23 @@ import (
 )
 
 var (
-	cmdConnect       = "connect"
-	cmdFcpublish     = "FCPublish"
-	cmdReleaseStream = "releaseStream"
-	cmdCreateStream  = "createStream"
-	cmdPublish       = "publish"
-	cmdFCUnpublish   = "FCUnpublish"
-	cmdDeleteStream  = "deleteStream"
-	cmdPlay          = "play"
+	CmdConnect       = "connect"
+	CmdFcpublish     = "FCPublish"
+	CmdReleaseStream = "releaseStream"
+	CmdCreateStream  = "createStream"
+	CmdPublish       = "publish"
+	CmdFCUnpublish   = "FCUnpublish"
+	CmdDeleteStream  = "deleteStream"
+	CmdPlay          = "play"
+
+	CmdError = "error"
 )
 
 //MsgCmdHandler is structure that has functionality of handle cmd message
 type MsgCmdHandler struct {
 	Msg  *Message
 	conn *conn.Conn
+	Type string
 }
 
 //NewMsgCmdHandler return msgcmdhandler with given message
@@ -41,6 +43,7 @@ func (msgCH *MsgCmdHandler) HandleMsgCmd() error {
 
 	decodedMsg, err := msgCH.decodeAmfCommand()
 	if err != nil {
+		logrus.Errorf("[Error] Amf cannot decode because faced to error %v", err)
 		return err
 	}
 
@@ -49,33 +52,59 @@ func (msgCH *MsgCmdHandler) HandleMsgCmd() error {
 	switch decodedMsg[0].(type) {
 	case string:
 		switch decodedMsg[0].(string) {
-		case cmdConnect:
+		case CmdConnect:
 			if err := handleConnectCmd(decodedMsg[1:], msgCH.conn); err != nil {
+				logrus.Errorf("[Error] Handle Connect Cmd faced to error %v", err)
 				return err
 			}
 
 			if err := responseToConnect(msgCH.conn, msgCH.Msg); err != nil {
+				logrus.Errorf("[Error] Response to Connect Command faced to error %v", err)
 				return err
 			}
-		case cmdCreateStream:
-			handleCreateStreamCmd(decodedMsg[1:], msgCH.conn)
-			responseToCreateStream(msgCH.conn, msgCH.Msg)
+		case CmdCreateStream:
+			if err := handleCreateStreamCmd(decodedMsg[1:], msgCH.conn); err != nil {
+				logrus.Errorf("[Error] Handle Create Stream Command faced to error %v", err)
+				return err
+			}
+
+			if err := responseToCreateStream(msgCH.conn, msgCH.Msg); err != nil {
+				logrus.Errorf("[Error] Response to Create Stream Command faced to error %v",
+					err)
+				return err
+			}
+
+			msgCH.Type = CmdCreateStream
 			logrus.Debug("[Debug] finished create stream")
 			// os.Exit(1)
-		case cmdPlay:
+		case CmdPlay:
 			logrus.Debug("finished play")
-			os.Exit(1)
-		case cmdPublish:
-			handlePublishCmd(decodedMsg[1:], msgCH.conn)
-			responseToPublish(msgCH.conn, msgCH.Msg)
-		case cmdFcpublish:
+			msgCH.Type = CmdPlay
+		case CmdPublish:
+			if err := handlePublishCmd(decodedMsg[1:], msgCH.conn); err != nil {
+				logrus.Errorf("[Error] Handle Publish Command faced to error %v", err)
+				return err
+			}
+
+			if err := responseToPublish(msgCH.conn, msgCH.Msg); err != nil {
+				logrus.Errorf("[Error] Response to Publish Command faced to error %v",
+					err)
+				return err
+			}
+
+			msgCH.Type = CmdPublish
+		case CmdFcpublish:
 			// connServer.fcPublish(decodedMsg)
-		case cmdReleaseStream:
+			msgCH.Type = CmdFcpublish
+		case CmdReleaseStream:
 			// connServer.releaseStream(decodedMsg)
-		case cmdFCUnpublish:
-		case cmdDeleteStream:
+		case CmdFCUnpublish:
+			msgCH.Type = CmdFCUnpublish
+		case CmdDeleteStream:
+			msgCH.Type = CmdDeleteStream
 		default:
 			logrus.Debug("no support command=", decodedMsg[0].(string))
+			msgCH.Type = CmdError
 		}
 	}
 
@@ -91,7 +120,7 @@ func (msgCH *MsgCmdHandler) decodeAmfCommand() ([]interface{}, error) {
 	amfVersion := msgCH.conn.GetAmfVersion()
 	decodedCmd, err := msgCH.conn.Decoder.DecodeBatch(reader, amfVersion)
 	if err != nil && err != io.EOF {
-		logrus.Debugf("[Debug] error occured during decode amf command err: %v", err)
+		logrus.Debugf("[Debug] Error occured during decode amf command err: %v", err)
 		return nil, err
 	}
 

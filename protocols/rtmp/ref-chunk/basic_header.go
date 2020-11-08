@@ -22,7 +22,7 @@ func (b *BasicHeader) Read(reader *bufio.Reader) (int, error) {
 	recvBytes := 0
 	basicHeader, err := reader.ReadByte()
 	if err != nil {
-		logrus.Errorf("[Error]Error occurred during read basic header first byte err: %v", err)
+		logrus.Errorf("[Error] Error occurred during read basic header first byte err: %v", err)
 		return recvBytes, err
 	}
 	recvBytes++
@@ -31,7 +31,7 @@ func (b *BasicHeader) Read(reader *bufio.Reader) (int, error) {
 	if tempCSID == 0 {
 		oneByteCsidMinus64, err := reader.ReadByte()
 		if err != nil {
-			logrus.Errorf("[Error]Error occurred during read basic header second byte header err: %v", err)
+			logrus.Errorf("[Error] Error occurred during read basic header second byte header err: %v", err)
 			return recvBytes, err
 		}
 		b.CSID = uint32((oneByteCsidMinus64 + 64))
@@ -39,7 +39,7 @@ func (b *BasicHeader) Read(reader *bufio.Reader) (int, error) {
 	} else if tempCSID == 1 {
 		twoByteCsidMinus64, err := ReadNByte(reader, 2)
 		if err != nil {
-			logrus.Errorf("[Error]Error occurred during read basic header second and third byte header err: %v", err)
+			logrus.Errorf("[Error] Error occurred during read basic header second and third byte header err: %v", err)
 			return recvBytes, err
 		}
 		b.CSID = uint32((twoByteCsidMinus64 + 64))
